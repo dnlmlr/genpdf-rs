@@ -290,6 +290,8 @@ pub enum Alignment {
     Right,
     /// Centered.
     Center,
+    /// Justified (this will act like Left for non-text elements)
+    Justified,
 }
 
 impl Default for Alignment {

@@ -23,6 +23,8 @@ use std::io;
 use std::ops;
 use std::rc;
 
+use printpdf::Pt;
+
 use crate::error::{Context as _, Error, ErrorKind};
 use crate::fonts;
 use crate::style::{Color, LineStyle, Style};
@@ -697,10 +699,15 @@ impl<'f, 'p> TextSection<'f, 'p> {
         }
     }
 
-    /// Prints the given string with the given style.
-    ///
-    /// The font cache for this text section must contain the PDF font for the given style.
-    pub fn print_str(&mut self, s: impl AsRef<str>, style: Style) -> Result<(), Error> {
+    /// Same as print_str, but with additional word spacing
+    pub fn print_str_xoff(
+        &mut self,
+        s: impl AsRef<str>,
+        style: Style,
+        extra_word_spacing: Mm,
+    ) -> Result<(), Error> {
+        let mut extra_word_spacing: Pt = extra_word_spacing.into();
+
         let font = style.font(self.font_cache);
         let s = s.as_ref();
 
@@ -712,15 +719,20 @@ impl<'f, 'p> TextSection<'f, 'p> {
                 Mm(0.0)
             };
             self.set_text_cursor(x_offset);
+            // No extra spacing on the first word
+            extra_word_spacing = Pt(0.0);
         }
         self.is_first = false;
 
-        let positions = font
-            .kerning(self.font_cache, s.chars())
+        let mut positions = font.kerning(self.font_cache, s.chars());
+        positions[0] += extra_word_spacing.0 as f32;
+
+        let positions = positions
             .into_iter()
             // Kerning is measured in 1/1000 em
             .map(|pos| pos * -1000.0)
             .map(|pos| pos as i64);
+
         let codepoints = if font.is_builtin() {
             // Built-in fonts always use the Windows-1252 encoding
             encode_win1252(s)?
@@ -739,6 +751,13 @@ impl<'f, 'p> TextSection<'f, 'p> {
             .layer
             .write_positioned_codepoints(positions, codepoints);
         Ok(())
+    }
+
+    /// Prints the given string with the given style.
+    ///
+    /// The font cache for this text section must contain the PDF font for the given style.
+    pub fn print_str(&mut self, s: impl AsRef<str>, style: Style) -> Result<(), Error> {
+        self.print_str_xoff(s, style, Mm(0.0))
     }
 }
 

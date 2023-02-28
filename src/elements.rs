@@ -306,7 +306,7 @@ impl Paragraph {
 
     fn get_offset(&self, width: Mm, max_width: Mm) -> Mm {
         match self.alignment {
-            Alignment::Left => Mm::default(),
+            Alignment::Left | Alignment::Justified => Mm::default(),
             Alignment::Center => (max_width - width) / 2.0,
             Alignment::Right => max_width - width,
         }
@@ -343,7 +343,11 @@ impl Element for Paragraph {
         let words = self.words.iter().map(Into::into);
         let mut rendered_len = 0;
         let mut wrapper = wrap::Wrapper::new(words, context, area.size().width);
-        for (line, delta) in &mut wrapper {
+
+        let mut curr_wrap = wrapper.next();
+        while let Some((line, delta)) = curr_wrap {
+            let next_wrap = wrapper.next();
+
             let width = line.iter().map(|s| s.width(&context.font_cache)).sum();
             // Calculate the maximum line height
             let metrics = line
@@ -352,9 +356,18 @@ impl Element for Paragraph {
                 .fold(fonts::Metrics::default(), |max, m| max.max(&m));
             let position = Position::new(self.get_offset(width, area.size().width), 0);
 
+            // Extra word spacing for justified text alignment, except on the last line
+            let extra_word_spacing = match self.alignment {
+                Alignment::Justified if next_wrap.is_some() => {
+                    let leftover_space = area.size().width - width;
+                    (leftover_space / line.len() as f64) / style.font_size() as f64
+                }
+                _ => Mm(0.0),
+            };
+
             if let Some(mut section) = area.text_section(&context.font_cache, position, metrics) {
                 for s in line {
-                    section.print_str(&s.s, s.style)?;
+                    section.print_str_xoff(&s.s, s.style, extra_word_spacing)?;
                     rendered_len += s.s.len();
                 }
                 rendered_len -= delta;
@@ -366,6 +379,8 @@ impl Element for Paragraph {
                 .size
                 .stack_vertical(Size::new(width, metrics.line_height));
             area.add_offset(Position::new(0, metrics.line_height));
+
+            curr_wrap = next_wrap;
         }
 
         if wrapper.has_overflowed() {
