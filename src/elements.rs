@@ -713,17 +713,11 @@ impl<E: Element> Element for FramedElement<E> {
 
         if self.is_first {
             result.size.height += line_thickness;
-            frame_area.draw_line(
-                vec![bottom_right, top_right, top_left, bottom_left],
-                self.line_style,
-            );
+            frame_area.draw_line(vec![top_left, bottom_left], self.line_style);
         }
         if !result.has_more {
             result.size.height += line_thickness;
-            frame_area.draw_line(
-                vec![top_left, bottom_left, bottom_right, top_right],
-                self.line_style,
-            );
+            frame_area.draw_line(vec![top_left, bottom_left], self.line_style);
         } else {
             frame_area.draw_line(vec![top_left, bottom_left], self.line_style);
             frame_area.draw_line(vec![top_right, bottom_right], self.line_style);
@@ -814,6 +808,14 @@ impl UnorderedList {
         if let Some(bullet) = &self.bullet {
             point.set_bullet(bullet.clone());
         }
+        self.layout.push(point);
+    }
+
+    /// Adds an element to this list, omitting the bullet point. This is an ugly hack to allow for
+    /// easy but technically flawed nested lists
+    pub fn push_no_bullet<E: Element + 'static>(&mut self, element: E) {
+        let mut point = BulletPoint::new(element);
+        point.set_bullet("");
         self.layout.push(point);
     }
 
