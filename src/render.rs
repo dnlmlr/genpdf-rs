@@ -725,7 +725,9 @@ impl<'f, 'p> TextSection<'f, 'p> {
         self.is_first = false;
 
         let mut positions = font.kerning(self.font_cache, s.chars());
-        positions[0] += extra_word_spacing.0 as f32;
+        if let Some(first_char_pos) = positions.get_mut(0) {
+            *first_char_pos += extra_word_spacing.0 as f32;
+        }
 
         let positions = positions
             .into_iter()
