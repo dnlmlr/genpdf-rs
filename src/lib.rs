@@ -469,13 +469,13 @@ impl From<PaperSize> for Size {
 #[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd)]
 pub struct Margins {
     /// The top margin of the area.
-    top: Mm,
+    pub top: Mm,
     /// The right margin of the area.
-    right: Mm,
+    pub right: Mm,
     /// The bottom margin of the area.
-    bottom: Mm,
+    pub bottom: Mm,
     /// The left margin of the area.
-    left: Mm,
+    pub left: Mm,
 }
 
 impl Margins {
