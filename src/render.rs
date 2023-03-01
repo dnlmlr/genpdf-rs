@@ -332,15 +332,23 @@ impl<'p> Layer<'p> {
     ) {
         let dynamic_image = printpdf::Image::from_dynamic_image(image);
         let position = self.transform_position(position);
-        dynamic_image.add_to_layer(
-            self.data.layer.clone(),
-            Some(position.x.into()),
-            Some(position.y.into()),
-            rotation.into(),
-            Some(scale.x),
-            Some(scale.y),
+
+        let rotation = printpdf::ImageRotation {
+            angle_ccw_degrees: rotation.degrees,
+            rotation_center_x: printpdf::Px(0),
+            rotation_center_y: printpdf::Px(0),
+        };
+
+        let transform = printpdf::ImageTransform {
+            translate_x: Some(position.x.into()),
+            translate_y: Some(position.y.into()),
+            rotate: Some(rotation.into()),
+            scale_x: Some(scale.x),
+            scale_y: Some(scale.y),
             dpi,
-        );
+        };
+
+        dynamic_image.add_to_layer(self.data.layer.clone(), transform);
     }
 
     fn add_line_shape<I>(&self, points: I)

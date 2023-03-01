@@ -21,11 +21,11 @@ name = "images"
 required-features = ["images"]
 
 [dependencies]
-lopdf = "0.26"
-rusttype = "0.8"
+lopdf = "0.27"
+rusttype = "0.9"
 
 [dependencies.image]
-version = "0.23.12"
+version = "0.24.4"
 default-features = false
 optional = true
 
@@ -34,7 +34,7 @@ version = "0.8"
 optional = true
 
 [dependencies.printpdf]
-version = "0.3.4"
+version = "0.5.3"
 default-features = false
 
 [dependencies.derive_more]
