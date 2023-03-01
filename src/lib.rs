@@ -200,7 +200,7 @@ use error::Context as _;
     SubAssign,
     Sum,
 )]
-pub struct Mm(f64);
+pub struct Mm(pub f64);
 
 impl Mm {
     /// Returns the maximum of this value and the given value.
