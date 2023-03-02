@@ -366,8 +366,24 @@ impl Element for Paragraph {
             };
 
             if let Some(mut section) = area.text_section(&context.font_cache, position, metrics) {
+                let mut strikethrough_area = area.clone();
+                strikethrough_area.add_offset(position);
+
                 for s in line {
                     section.print_str_xoff(&s.s, s.style, extra_word_spacing)?;
+
+                    let width = s.width(&context.font_cache);
+                    if s.style.is_strikethrough() {
+                        strikethrough_area.draw_line(
+                            [
+                                Position::new(0, metrics.glyph_height / 2.0),
+                                Position::new(width, metrics.glyph_height / 2.0),
+                            ],
+                            LineStyle::default().with_thickness(0.3),
+                        );
+                    }
+                    strikethrough_area.add_offset(Position::new(width, 0));
+
                     rendered_len += s.s.len();
                 }
                 rendered_len -= delta;
