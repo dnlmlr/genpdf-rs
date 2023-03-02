@@ -428,6 +428,13 @@ impl<'p> Layer<'p> {
             .write_positioned_codepoints(positions.into_iter().zip(codepoints.into_iter()));
     }
 
+    fn write_codepoints<C>(&self, codepoints: C)
+    where
+        C: IntoIterator<Item = u16>,
+    {
+        self.data.layer.write_codepoints(codepoints.into_iter());
+    }
+
     /// Transforms the given position that is relative to the upper left corner of the layer to a
     /// position that is relative to the lower left corner of the layer (as used by `printpdf`).
     fn transform_position(&self, position: LayerPosition) -> UserSpacePosition {
@@ -637,6 +644,20 @@ impl<'p> Area<'p> {
         TextSection::new(font_cache, area, metrics)
     }
 
+    pub fn print_codepoint(
+        &self,
+        font_cache: &fonts::FontCache,
+        origin: Position,
+        codepoint: u16,
+        scale: f64,
+    ) {
+        let style = Style::default();
+        let mut section = self
+            .text_section(font_cache, origin, style.metrics(font_cache))
+            .unwrap();
+        section.print_codepoint(style, codepoint, scale);
+    }
+
     /// Returns a position relative to the top left corner of this area.
     fn position(&self, position: Position) -> LayerPosition {
         LayerPosition::from_area(self, position)
@@ -768,6 +789,19 @@ impl<'f, 'p> TextSection<'f, 'p> {
     /// The font cache for this text section must contain the PDF font for the given style.
     pub fn print_str(&mut self, s: impl AsRef<str>, style: Style) -> Result<(), Error> {
         self.print_str_xoff(s, style, Mm(0.0))
+    }
+
+    pub fn print_codepoint(&mut self, style: Style, codepoint: u16, scale: f64) {
+        let font = style.font(self.font_cache);
+        let font = self
+            .font_cache
+            .get_pdf_font(font)
+            .expect("Could not find PDF font in font cache");
+        self.area.layer.set_fill_color(style.color());
+        self.set_font(font, (style.font_size() as f64 * scale) as u8);
+        self.set_text_cursor(Mm(0.0));
+
+        self.area.layer.write_codepoints([codepoint]);
     }
 }
 

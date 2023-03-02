@@ -49,6 +49,7 @@ use std::mem;
 
 use crate::error::{Error, ErrorKind};
 use crate::fonts;
+use crate::math::MathBlock;
 use crate::render;
 use crate::style::{LineStyle, Style, StyledString};
 use crate::wrap;
@@ -1527,5 +1528,55 @@ impl Element for TableLayout {
         }
         result.has_more = self.render_idx < self.rows.len();
         Ok(result)
+    }
+}
+
+pub struct MathElement {
+    block: MathBlock,
+}
+
+impl MathElement {
+    pub fn new(block: MathBlock) -> Self {
+        Self { block }
+    }
+}
+
+impl Element for MathElement {
+    fn render(
+        &mut self,
+        context: &Context,
+        area: render::Area<'_>,
+        style: crate::style::Style,
+    ) -> Result<RenderResult, crate::error::Error> {
+        for op in self.block.ops() {
+            match op {
+                crate::math::MathOp::Glyph { x, y, scale, gid } => {
+                    // todo use correct font!
+                    area.print_codepoint(
+                        &context.font_cache,
+                        Position::new(*x, *y),
+                        *gid,
+                        *scale * 0.25,
+                    );
+                }
+                crate::math::MathOp::Rect {
+                    x,
+                    y,
+                    width,
+                    height,
+                } => area.draw_line(
+                    vec![
+                        Position::new(*x, *y),
+                        Position::new(x + width, *y),
+                        Position::new(x + width, y + height),
+                        Position::new(*x, y + height),
+                        Position::new(*x, *y),
+                    ],
+                    LineStyle::default(), // todo filled rects!
+                ),
+            }
+        }
+
+        Ok(RenderResult::default())
     }
 }
