@@ -721,6 +721,11 @@ impl<'f, 'p> TextSection<'f, 'p> {
 
         // Adjust cursor to remove left bearing of the first character of the first string
         if self.is_first {
+            // If the first word is literally just space, ignore it to preserve alignment
+            if s.trim().is_empty() {
+                return Ok(());
+            }
+
             let x_offset = if let Some(first_c) = s.chars().next() {
                 style.char_left_side_bearing(self.font_cache, first_c) * -1.0
             } else {
