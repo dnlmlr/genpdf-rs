@@ -641,6 +641,10 @@ impl Document {
         self.style.set_font_size(font_size);
     }
 
+    pub fn font_size(&self) -> u8 {
+        self.style.font_size()
+    }
+
     /// Sets the default line spacing factor for this document.
     ///
     /// If this method is not called, the default value of 1 is used.

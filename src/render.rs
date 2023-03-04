@@ -351,7 +351,7 @@ impl<'p> Layer<'p> {
         dynamic_image.add_to_layer(self.data.layer.clone(), transform);
     }
 
-    fn add_line_shape<I>(&self, points: I)
+    fn add_line_shape<I>(&self, points: I, filled: bool)
     where
         I: IntoIterator<Item = LayerPosition>,
     {
@@ -362,7 +362,7 @@ impl<'p> Layer<'p> {
         let line = printpdf::Line {
             points: line_points,
             is_closed: false,
-            has_fill: false,
+            has_fill: filled,
             has_stroke: true,
             is_clipping_path: false,
         };
@@ -416,6 +416,10 @@ impl<'p> Layer<'p> {
 
     fn set_font(&self, font: &printpdf::IndirectFontRef, font_size: u8) {
         self.data.layer.set_font(font, font_size.into());
+    }
+
+    fn set_font_f64(&self, font: &printpdf::IndirectFontRef, font_size: f64) {
+        self.data.layer.set_font(font, font_size);
     }
 
     fn write_positioned_codepoints<P, C>(&self, positions: P, codepoints: C)
@@ -602,8 +606,10 @@ impl<'p> Area<'p> {
     {
         self.layer.set_outline_thickness(line_style.thickness());
         self.layer.set_outline_color(line_style.color());
-        self.layer
-            .add_line_shape(points.into_iter().map(|pos| self.position(pos)));
+        self.layer.add_line_shape(
+            points.into_iter().map(|pos| self.position(pos)),
+            line_style.filled(),
+        );
     }
 
     /// Tries to draw the given string at the given position and returns `true` if the area was
@@ -649,13 +655,13 @@ impl<'p> Area<'p> {
         font_cache: &fonts::FontCache,
         origin: Position,
         codepoint: u16,
-        scale: f64,
+        font_size: f64,
     ) {
         let style = Style::default();
         let mut section = self
             .text_section(font_cache, origin, style.metrics(font_cache))
             .unwrap();
-        section.print_codepoint(style, codepoint, scale);
+        section.print_codepoint(style, codepoint, font_size);
     }
 
     /// Returns a position relative to the top left corner of this area.
@@ -713,6 +719,11 @@ impl<'f, 'p> TextSection<'f, 'p> {
             self.font = Some((font.clone(), font_size));
             self.area.layer.set_font(font, font_size);
         }
+    }
+
+    fn set_font_f64(&mut self, font: &printpdf::IndirectFontRef, font_size: f64) {
+        // todo caching clusterfuck
+        self.area.layer.set_font_f64(font, font_size);
     }
 
     /// Tries to add a new line and returns `true` if the area was large enough to fit the new
@@ -791,14 +802,14 @@ impl<'f, 'p> TextSection<'f, 'p> {
         self.print_str_xoff(s, style, Mm(0.0))
     }
 
-    pub fn print_codepoint(&mut self, style: Style, codepoint: u16, scale: f64) {
+    pub fn print_codepoint(&mut self, style: Style, codepoint: u16, font_size: f64) {
         let font = style.font(self.font_cache);
         let font = self
             .font_cache
             .get_pdf_font(font)
             .expect("Could not find PDF font in font cache");
         self.area.layer.set_fill_color(style.color());
-        self.set_font(font, (style.font_size() as f64 * scale) as u8);
+        self.set_font_f64(font, font_size);
         self.set_text_cursor(Mm(0.0));
 
         self.area.layer.write_codepoints([codepoint]);

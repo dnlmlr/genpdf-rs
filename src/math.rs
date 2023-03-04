@@ -31,23 +31,25 @@ impl MathBlock {
     }
 }
 
+const PX_TO_MM: f64 = 0.352777;
+
 impl Backend for MathBlock {
     fn symbol(&mut self, pos: rex::Cursor, gid: u16, scale: f64, ctx: &rex::MathFont) {
         // todo batch text areas of same y offset and scale together
         self.math_ops.push(MathOp::Glyph {
-            x: pos.x,
-            y: pos.y,
+            x: pos.x as f64 * PX_TO_MM, // value is in EM
+            y: pos.y as f64 * PX_TO_MM,
             gid,
-            scale,
+            scale, // scale = actual font_size for character
         });
     }
 
     fn rule(&mut self, pos: rex::Cursor, width: f64, height: f64) {
         self.math_ops.push(MathOp::Rect {
-            x: pos.x,
-            y: pos.y,
-            height,
-            width,
+            x: pos.x * PX_TO_MM,
+            y: (pos.y + 9.2) * PX_TO_MM,
+            height: height * PX_TO_MM,
+            width: width * PX_TO_MM,
         });
     }
 

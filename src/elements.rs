@@ -1552,12 +1552,7 @@ impl Element for MathElement {
             match op {
                 crate::math::MathOp::Glyph { x, y, scale, gid } => {
                     // todo use correct font!
-                    area.print_codepoint(
-                        &context.font_cache,
-                        Position::new(*x, *y),
-                        *gid,
-                        *scale * 0.25,
-                    );
+                    area.print_codepoint(&context.font_cache, Position::new(*x, *y), *gid, *scale);
                 }
                 crate::math::MathOp::Rect {
                     x,
@@ -1572,7 +1567,7 @@ impl Element for MathElement {
                         Position::new(*x, y + height),
                         Position::new(*x, *y),
                     ],
-                    LineStyle::default(), // todo filled rects!
+                    LineStyle::default().with_filled(true),
                 ),
             }
         }
