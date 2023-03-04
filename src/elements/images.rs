@@ -152,7 +152,7 @@ impl Image {
     /// Determines the offset from left-side based on provided Alignment.
     fn get_offset(&self, width: Mm, max_width: Mm) -> Position {
         let horizontal_offset = match self.alignment {
-            Alignment::Left | Alignment::Justified => Mm::default(),
+            Alignment::Left | Alignment::Justified(_) => Mm::default(),
             Alignment::Center => (max_width - width) / 2.0,
             Alignment::Right => max_width - width,
         };

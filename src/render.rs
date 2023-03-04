@@ -717,12 +717,13 @@ impl<'f, 'p> TextSection<'f, 'p> {
         let mut extra_word_spacing: Pt = extra_word_spacing.into();
 
         let font = style.font(self.font_cache);
-        let s = s.as_ref();
+        let mut s = s.as_ref();
 
         // Adjust cursor to remove left bearing of the first character of the first string
         if self.is_first {
             // If the first word is literally just space, ignore it to preserve alignment
-            if s.trim().is_empty() {
+            s = s.trim_start();
+            if s.is_empty() {
                 return Ok(());
             }
 
