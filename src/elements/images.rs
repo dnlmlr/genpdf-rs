@@ -62,6 +62,10 @@ pub struct Image {
 
     /// DPI override if you know better. Defaults to `printpdf`’s default of 300 dpi.
     dpi: Option<f64>,
+
+    /// With this setting, the image is scaled to fit the page width before applying the actual
+    /// scale value.
+    fit_width: bool,
 }
 
 impl Image {
@@ -80,6 +84,7 @@ impl Image {
                 scale: Scale::default(),
                 rotation: Rotation::default(),
                 dpi: None,
+                fit_width: false,
             })
         }
     }
@@ -149,6 +154,19 @@ impl Image {
         self
     }
 
+    /// Sets the fit_width property which determins if the image will be scaled to fit the page
+    /// width before applying the scale value.
+    pub fn set_fit_width(&mut self, fit_width: bool) {
+        self.fit_width = fit_width;
+    }
+
+    /// Sets the fit_width property which determins if the image will be scaled to fit the page
+    /// width before applying the scale value.
+    pub fn with_fit_width(mut self, fit_width: bool) -> Self {
+        self.fit_width = fit_width;
+        self
+    }
+
     /// Determines the offset from left-side based on provided Alignment.
     fn get_offset(&self, width: Mm, max_width: Mm) -> Position {
         let horizontal_offset = match self.alignment {
@@ -203,6 +221,18 @@ impl Element for Image {
         area: render::Area<'_>,
         _style: style::Style,
     ) -> Result<RenderResult, Error> {
+        let curr_scale_value = self.scale;
+
+        // Temporarily apply the autoscale factor if needed
+        if self.fit_width {
+            self.scale.x = 1.0;
+            self.scale.y = 1.0;
+            let autoscale = area.size().width.0 / self.get_size().width.0;
+
+            self.scale.x = autoscale * curr_scale_value.x;
+            self.scale.y = autoscale * curr_scale_value.y;
+        }
+
         let mut result = RenderResult::default();
         let true_size = self.get_size();
         let (bb_origin, bb_size) = bounding_box_offset_and_size(&self.rotation, &true_size);
@@ -224,6 +254,11 @@ impl Element for Image {
 
         // Insert/render the image with the overridden/calculated position.
         area.add_image(&self.data, position, self.scale, self.rotation, self.dpi);
+
+        // Reset the scale value after rendering
+        if self.fit_width {
+            self.scale = curr_scale_value;
+        }
 
         // Always false as we can't safely do this unless we want to try to do "sub-images".
         // This is technically possible with the `image` package, but it is potentially more
