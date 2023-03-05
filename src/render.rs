@@ -23,7 +23,6 @@ use std::io;
 use std::ops;
 use std::rc;
 
-use printpdf::PdfLayerReference;
 use printpdf::Pt;
 
 use crate::error::{Context as _, Error, ErrorKind};
@@ -433,13 +432,6 @@ impl<'p> Layer<'p> {
             .write_positioned_codepoints(positions.into_iter().zip(codepoints.into_iter()));
     }
 
-    fn write_codepoints<C>(&self, codepoints: C)
-    where
-        C: IntoIterator<Item = u16>,
-    {
-        self.data.layer.write_codepoints(codepoints.into_iter());
-    }
-
     /// Transforms the given position that is relative to the upper left corner of the layer to a
     /// position that is relative to the lower left corner of the layer (as used by `printpdf`).
     fn transform_position(&self, position: LayerPosition) -> UserSpacePosition {
@@ -651,20 +643,7 @@ impl<'p> Area<'p> {
         TextSection::new(font_cache, area, metrics)
     }
 
-    pub fn print_codepoint(
-        &self,
-        font_cache: &fonts::FontCache,
-        origin: Position,
-        codepoint: u16,
-        font_size: f64,
-    ) {
-        let style = Style::default();
-        let mut section = self
-            .text_section(font_cache, origin, style.metrics(font_cache))
-            .unwrap();
-        section.print_codepoint(style, codepoint, font_size);
-    }
-
+    /// Creates a new text section at the given position, and writes codepoints (actually glyph IDs) with kerning into it
     pub fn print_positioned_codepoints<C, P>(
         &self,
         font_cache: &fonts::FontCache,
@@ -827,20 +806,8 @@ impl<'f, 'p> TextSection<'f, 'p> {
         self.print_str_xoff(s, style, Mm(0.0))
     }
 
-    pub fn print_codepoint(&mut self, style: Style, codepoint: u16, font_size: f64) {
-        let font = style.font(self.font_cache);
-        let font = self
-            .font_cache
-            .get_pdf_font(font)
-            .expect("Could not find PDF font in font cache");
-
-        self.area.layer.set_fill_color(style.color());
-        self.set_font_f64(font, font_size);
-        self.set_text_cursor(Mm(0.0));
-
-        self.area.layer.write_codepoints([codepoint]);
-    }
-
+    /// Prints raw glyph IDs into a single text section at the given origin, with horizontal positions applied.
+    /// Positions are in EM units and relative to the previous character.
     pub fn print_positioned_codepoints<P, C>(
         &mut self,
         style: Style,

@@ -651,15 +651,18 @@ impl LineStyle {
         self.color
     }
 
+    /// Sets whether the line should be filled, if used as a rectangle
     pub fn set_filled(&mut self, filled: bool) {
         self.filled = filled;
     }
 
+    /// Sets the fill style and returns the line style
     pub fn with_filled(mut self, filled: bool) -> Self {
         self.set_filled(filled);
         self
     }
 
+    /// Retunrs the fill style
     pub fn filled(&self) -> bool {
         self.filled
     }

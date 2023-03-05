@@ -645,6 +645,7 @@ impl Document {
         self.style.set_font_size(font_size);
     }
 
+    /// Gets the default font size for this document
     pub fn font_size(&self) -> u8 {
         self.style.font_size()
     }
