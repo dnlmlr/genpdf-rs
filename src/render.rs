@@ -23,6 +23,7 @@ use std::io;
 use std::ops;
 use std::rc;
 
+use printpdf::PdfLayerReference;
 use printpdf::Pt;
 
 use crate::error::{Context as _, Error, ErrorKind};
@@ -664,6 +665,24 @@ impl<'p> Area<'p> {
         section.print_codepoint(style, codepoint, font_size);
     }
 
+    pub fn print_positioned_codepoints<C, P>(
+        &self,
+        font_cache: &fonts::FontCache,
+        origin: Position,
+        positions: P,
+        codepoints: C,
+        font_size: f64,
+    ) where
+        C: IntoIterator<Item = u16>,
+        P: IntoIterator<Item = f64>,
+    {
+        let style = Style::default();
+        let mut section = self
+            .text_section(font_cache, origin, style.metrics(font_cache))
+            .unwrap();
+        section.print_positioned_codepoints(style, positions, codepoints, font_size);
+    }
+
     /// Returns a position relative to the top left corner of this area.
     fn position(&self, position: Position) -> LayerPosition {
         LayerPosition::from_area(self, position)
@@ -808,11 +827,39 @@ impl<'f, 'p> TextSection<'f, 'p> {
             .font_cache
             .get_pdf_font(font)
             .expect("Could not find PDF font in font cache");
+
         self.area.layer.set_fill_color(style.color());
         self.set_font_f64(font, font_size);
         self.set_text_cursor(Mm(0.0));
 
         self.area.layer.write_codepoints([codepoint]);
+    }
+
+    pub fn print_positioned_codepoints<P, C>(
+        &mut self,
+        style: Style,
+        positions: P,
+        codepoints: C,
+        font_size: f64,
+    ) where
+        P: IntoIterator<Item = f64>,
+        C: IntoIterator<Item = u16>,
+    {
+        let font = style.font(self.font_cache);
+
+        let font = self
+            .font_cache
+            .get_pdf_font(font)
+            .expect("Could not find PDF font in font cache");
+        self.area.layer.set_fill_color(style.color());
+        self.set_font_f64(font, font_size);
+        self.set_text_cursor(Mm(0.0));
+
+        let positions = positions.into_iter().map(|p| p * -1000.0).map(|p| p as i64);
+
+        self.area
+            .layer
+            .write_positioned_codepoints(positions, codepoints);
     }
 }
 

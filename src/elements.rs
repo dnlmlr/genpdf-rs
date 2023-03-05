@@ -1551,7 +1551,6 @@ impl Element for MathElement {
         for op in self.block.ops() {
             match op {
                 crate::math::MathOp::Glyph { x, y, scale, gid } => {
-                    // todo use correct font!
                     area.print_codepoint(&context.font_cache, Position::new(*x, *y), *gid, *scale);
                 }
                 crate::math::MathOp::Rect {
@@ -1568,6 +1567,19 @@ impl Element for MathElement {
                         Position::new(*x, *y),
                     ],
                     LineStyle::default().with_filled(true),
+                ),
+                crate::math::MathOp::TextSection {
+                    origin_y,
+                    font_size,
+                    x_offsets,
+                    glyph_ids,
+                    ..
+                } => area.print_positioned_codepoints(
+                    &context.font_cache,
+                    Position::new(0, *origin_y),
+                    x_offsets.into_iter().map(|f| *f),
+                    glyph_ids.into_iter().map(|f| *f),
+                    *font_size,
                 ),
             }
         }
