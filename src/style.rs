@@ -113,6 +113,7 @@ pub struct Style {
     color: Option<Color>,
     is_bold: bool,
     is_italic: bool,
+    is_strikethrough: bool,
 }
 
 impl Style {
@@ -138,6 +139,9 @@ impl Style {
         }
         if style.is_italic {
             self.is_italic = true;
+        }
+        if style.is_strikethrough {
+            self.is_strikethrough = true;
         }
     }
 
@@ -241,6 +245,22 @@ impl Style {
     pub fn with_color(mut self, color: Color) -> Self {
         self.set_color(color);
         self
+    }
+
+    /// Sets the strikethrough effect.
+    pub fn set_strikethrough(&mut self) {
+        self.is_strikethrough = true;
+    }
+
+    /// Sets the strikethrough effect and returns it.
+    pub fn with_strikethrough(mut self) -> Self {
+        self.is_strikethrough = true;
+        self
+    }
+
+    /// Returns whether the strikethrough effect is set.
+    pub fn is_strikethrough(&self) -> bool {
+        self.is_strikethrough
     }
 
     /// Calculates the width of the given character with this style using the data in the given

@@ -292,8 +292,11 @@ pub enum Alignment {
     Right,
     /// Centered.
     Center,
-    /// Justified (this will act like Left for non-text elements)
-    Justified,
+    /// Justified (this will act like Left for non-text elements). The boolean value sets if spaces
+    /// on the right side will be trimmed. When set to false, spaces at the right end of a line will
+    /// be kept, resulting in a not fully aligned look (this seems to be the default in LaTeX).
+    /// When set to true, the last non-space character will be aligned to the right side instead.
+    Justified(bool),
 }
 
 impl Default for Alignment {

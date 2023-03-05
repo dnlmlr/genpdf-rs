@@ -310,9 +310,22 @@ impl Paragraph {
         self
     }
 
+    /// Adds a string to the end of this paragraph if the provided check function returns true. The
+    /// check callback is provided with the current Text to decide if the new string should be
+    /// added
+    pub fn push_if_text(
+        &mut self,
+        s: impl Into<StyledString>,
+        check: impl Fn(&[StyledString]) -> bool,
+    ) {
+        if check(&self.text) {
+            self.push(s);
+        }
+    }
+
     fn get_offset(&self, width: Mm, max_width: Mm) -> Mm {
         match self.alignment {
-            Alignment::Left | Alignment::Justified => Mm::default(),
+            Alignment::Left | Alignment::Justified(_) => Mm::default(),
             Alignment::Center => (max_width - width) / 2.0,
             Alignment::Right => max_width - width,
         }
@@ -364,16 +377,49 @@ impl Element for Paragraph {
 
             // Extra word spacing for justified text alignment, except on the last line
             let extra_word_spacing = match self.alignment {
-                Alignment::Justified if next_wrap.is_some() => {
+                Alignment::Justified(trim_spaces) if next_wrap.is_some() => {
+                    let mut width = width;
+                    if let Some(word) = line.first() {
+                        let diff = word.width(&context.font_cache)
+                            - word
+                                .style
+                                .str_width(&context.font_cache, word.s.trim_start());
+                        width -= diff;
+                    }
+                    match (trim_spaces, line.last()) {
+                        (true, Some(word)) => {
+                            let diff = word.width(&context.font_cache)
+                                - word.style.str_width(&context.font_cache, word.s.trim_end());
+                            width -= diff;
+                        }
+                        _ => (),
+                    }
+
                     let leftover_space = area.size().width - width;
-                    (leftover_space / line.len() as f64) / style.font_size() as f64
+                    (leftover_space / (line.len() - 1).max(1) as f64) / style.font_size() as f64
                 }
                 _ => Mm(0.0),
             };
 
             if let Some(mut section) = area.text_section(&context.font_cache, position, metrics) {
+                let mut strikethrough_area = area.clone();
+                strikethrough_area.add_offset(position);
+
                 for s in line {
                     section.print_str_xoff(&s.s, s.style, extra_word_spacing)?;
+
+                    let width = s.width(&context.font_cache);
+                    if s.style.is_strikethrough() {
+                        strikethrough_area.draw_line(
+                            [
+                                Position::new(0, metrics.glyph_height / 2.0),
+                                Position::new(width, metrics.glyph_height / 2.0),
+                            ],
+                            LineStyle::default().with_thickness(0.3),
+                        );
+                    }
+                    strikethrough_area.add_offset(Position::new(width, 0));
+
                     rendered_len += s.s.len();
                 }
                 rendered_len -= delta;
