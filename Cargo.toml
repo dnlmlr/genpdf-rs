@@ -28,7 +28,7 @@ required-features = ["math"]
 lopdf = "0.27"
 rusttype = "0.9"
 rex = { git = "https://github.com/Twometer/ReX", rev = "d0991f44a66dee84f5280277e9251f26777871cb", optional = true }
-font = { git = "https://github.com/pdf-rs/font", rev = "393ec29a04a169d62208e5feb2aae4ecdd1324e0", features = [
+font = { git = "https://github.com/pdf-rs/font", features = [
     "woff",
 ], optional = true }
 
