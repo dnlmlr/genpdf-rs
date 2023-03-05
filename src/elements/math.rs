@@ -49,7 +49,7 @@ impl Element for Math {
                 MathOp::TextSection(text_section) => {
                     area.print_positioned_codepoints(
                         &context.font_cache,
-                        Position::new(x_origin, text_section.origin_y),
+                        Position::new(x_origin, text_section.y_origin),
                         text_section.x_offsets.clone().into_iter(),
                         text_section.glyph_ids.clone().into_iter(),
                         text_section.font_size,

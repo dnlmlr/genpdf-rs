@@ -22,7 +22,7 @@ fn mm_to_em(mm: f64, font_size: f64) -> f64 {
 /// A batch of glyphs with the same color, y-offset and size, that can be rendered as a single text seciton
 pub struct TextSection {
     /// Vertical offset of the text section, in mm
-    pub origin_y: f64,
+    pub y_origin: f64,
 
     /// Font size of the text section, in em
     pub font_size: f64,
@@ -40,8 +40,8 @@ pub struct TextSection {
 }
 
 impl TextSection {
-    fn can_append(&self, origin_y: f64, font_size: f64, color: Color) -> bool {
-        (self.origin_y - origin_y).abs() < POSITIONING_ACCURACY
+    fn can_append(&self, y_origin: f64, font_size: f64, color: Color) -> bool {
+        (self.y_origin - y_origin).abs() < POSITIONING_ACCURACY
             && (self.font_size - font_size) < f64::EPSILON
             && self.color == color
     }
@@ -133,7 +133,7 @@ impl MathBlock {
             }
             None => {
                 self.math_ops.push(MathOp::TextSection(TextSection {
-                    origin_y: y,
+                    y_origin: y,
                     font_size,
                     x_offsets: vec![mm_to_em(x, font_size)],
                     glyph_ids: vec![glyph_id],
