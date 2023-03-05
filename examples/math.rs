@@ -3,7 +3,6 @@ use genpdf::{
     elements::{self, MathElement},
     fonts::FontFamily,
     math::MathBlock,
-    Size,
 };
 use rex::{
     font::FontContext,

@@ -20,11 +20,15 @@ readme = "README.md"
 name = "images"
 required-features = ["images"]
 
+[[example]]
+name = "math"
+required-features = ["math"]
+
 [dependencies]
 lopdf = "0.27"
 rusttype = "0.9"
-rex = { git = "https://github.com/grafeia/ReX.git" }
-font = { git = "https://github.com/pdf-rs/font", features = ["woff"] } # todo do we REALLY need another font crate
+rex = { git = "https://github.com/Twometer/ReX", optional = true }
+font = { git = "https://github.com/pdf-rs/font", features = ["woff"], optional = true }
 
 [dependencies.image]
 version = "0.24.4"
@@ -56,7 +60,7 @@ features = ["embed_en-us"]
 [features]
 default = []
 images = ["image", "printpdf/embedded_images"]
-math = []
+math = ["dep:rex", "dep:font"]
 
 [package.metadata.docs.rs]
 all-features = true

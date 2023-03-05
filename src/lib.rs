@@ -158,6 +158,7 @@ mod wrap;
 pub mod elements;
 pub mod error;
 pub mod fonts;
+#[cfg(feature = "math")]
 pub mod math;
 pub mod render;
 pub mod style;

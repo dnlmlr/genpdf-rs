@@ -1,7 +1,7 @@
 use font::Font;
 use rex::Backend;
 
-const POSITIONING_ACCURACY: f64 = 0.01;
+const POSITIONING_ACCURACY: f64 = 0.01; // Unit: millimeters
 
 fn mm_to_em(mm: f64, font_size: f64) -> f64 {
     mm * (1.0 / font_size) * 2.835 // todo what is this magic number
@@ -14,12 +14,6 @@ pub enum MathOp {
         x_offsets: Vec<f64>,
         glyph_ids: Vec<u16>,
         last_x: f64,
-    },
-    Glyph {
-        x: f64,
-        y: f64,
-        scale: f64,
-        gid: u16,
     },
     Rect {
         x: f64,
@@ -56,7 +50,6 @@ impl MathBlock {
                 } if (y - *origin_y).abs() < POSITIONING_ACCURACY
                     && (glyph_font_size - *font_size).abs() < f64::EPSILON =>
                 {
-                    println!("{}x{}: {}", origin_y, font_size, x);
                     let x_pos = mm_to_em(x, glyph_font_size);
 
                     x_offsets.push(x_pos - *last_x);
