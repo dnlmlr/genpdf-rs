@@ -3,7 +3,7 @@
 use std::fmt::Debug;
 
 use font::{Font, OpenTypeFont};
-use rex::{font::FontContext, Backend};
+use rex::{font::FontContext, parser::ParseNode, Backend};
 
 use crate::{fonts::FontFamily, style::Color, Size};
 
@@ -221,18 +221,17 @@ impl MathRenderer {
         }
     }
 
-    pub(crate) fn render(&self, font_size: f64, math_def: &str) -> MathBlock {
+    pub(crate) fn render(&self, font_size: f64, rex_ast: &[ParseNode]) -> MathBlock {
         use rex::{
             layout::engine::layout,
             layout::{Grid, Layout, LayoutSettings},
-            parser::parse,
         };
 
         let rex_font_ctx = FontContext::new(&self.font); // todo maybe don't reinstantiate every time
         let rex_layout_settings =
             LayoutSettings::new(&rex_font_ctx, font_size, rex::layout::Style::Display);
 
-        let rex_ast = parse(math_def).expect("Failed to parse math");
+        // Todo: Figure out if this can reasonably panic or not
         let rex_math_block = layout(&rex_ast, rex_layout_settings).expect("Failed to layout math");
 
         let mut rex_grid = Grid::new();

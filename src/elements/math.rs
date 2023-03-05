@@ -1,26 +1,34 @@
+use rex::{error::ParseError, parser::ParseNode};
+
 use crate::{
     math::MathOp, render, style::LineStyle, Alignment, Context, Element, Position, RenderResult,
 };
 
 /// An element that can render LaTeX-styled math formulas to a PDF document
 pub struct Math {
-    source: String,
+    rex_ast: Vec<ParseNode>,
     alignment: Alignment,
 }
 
 impl Math {
     /// Creates a new math element that renders the given LaTeX math source
-    pub fn new(source: &str) -> Self {
-        Self {
-            source: source.to_owned(),
+    pub fn new(source: &str) -> Result<Self, ParseError<'_>> {
+        let rex_ast = rex::parser::parse(source)?;
+        Ok(Self {
+            rex_ast,
             alignment: Alignment::Left,
-        }
+        })
     }
 
     /// Sets the horizontal alignment of the Math block
     pub fn aligned(mut self, alignment: Alignment) -> Self {
         self.alignment = alignment;
         self
+    }
+
+    /// Sets the horizontal alignment of the Math block
+    pub fn set_alignment(&mut self, alignment: Alignment) {
+        self.alignment = alignment;
     }
 }
 
@@ -36,7 +44,7 @@ impl Element for Math {
             .as_ref()
             .expect("Tried to use math element without an active math font");
 
-        let block = math_renderer.render(style.font_size() as f64, &self.source);
+        let block = math_renderer.render(style.font_size() as f64, &self.rex_ast);
 
         let x_origin = match self.alignment {
             Alignment::Left | Alignment::Justified(_) => 0.0,
