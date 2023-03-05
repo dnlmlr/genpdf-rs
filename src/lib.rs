@@ -172,10 +172,12 @@ use derive_more::{
 };
 
 use error::Context as _;
-use fonts::Font;
-use fonts::FontData;
-use fonts::FontFamily;
+
+#[cfg(feature = "math")]
 use math::MathRenderer;
+
+#[cfg(feature = "math")]
+use fonts::{Font, FontFamily};
 
 /// A length measured in millimeters.
 ///
@@ -616,8 +618,8 @@ impl Document {
     ) -> fonts::FontFamily<fonts::Font> {
         self.context.font_cache.add_font_family(font_family)
     }
-
     /// Enables math rendering by providing a font with a valid MATH header.
+    #[cfg(feature = "math")]
     pub fn enable_math(&mut self, math_font_data: &[u8], math_font_family: FontFamily<Font>) {
         self.context.math_renderer = Some(MathRenderer::new(math_font_data, math_font_family));
     }
@@ -1001,6 +1003,7 @@ impl Context {
     fn new(font_cache: fonts::FontCache) -> Context {
         Context {
             font_cache,
+            #[cfg(feature = "math")]
             math_renderer: None,
         }
     }
@@ -1010,6 +1013,7 @@ impl Context {
         Context {
             font_cache,
             hyphenator: None,
+            #[cfg(feature = "math")]
             math_renderer: None,
         }
     }

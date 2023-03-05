@@ -1,5 +1,3 @@
-use std::f32::consts::E;
-
 use crate::{
     math::MathOp, render, style::LineStyle, Alignment, Context, Element, Position, RenderResult,
 };

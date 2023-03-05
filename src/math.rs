@@ -1,13 +1,11 @@
+//! Implements a ReX-based math renderer for genpdf
+
 use std::fmt::Debug;
 
 use font::{Font, OpenTypeFont};
 use rex::{font::FontContext, Backend};
 
-use crate::{
-    fonts::{FontData, FontFamily},
-    style::Color,
-    Size,
-};
+use crate::{fonts::FontFamily, style::Color, Size};
 
 /// Maximum difference between two y-offsets to be inserted into same batch
 const POSITIONING_ACCURACY: f64 = 0.01; // Unit: millimeters
@@ -23,10 +21,19 @@ fn mm_to_em(mm: f64, font_size: f64) -> f64 {
 
 /// A batch of glyphs with the same color, y-offset and size, that can be rendered as a single text seciton
 pub struct TextSection {
+    /// Vertical offset of the text section, in mm
     pub origin_y: f64,
+
+    /// Font size of the text section, in em
     pub font_size: f64,
+
+    /// Horizontal offsets of the glyphs, in em
     pub x_offsets: Vec<f64>,
+
+    /// IDs of the glyphs in the section
     pub glyph_ids: Vec<u16>,
+
+    /// Color of the section
     pub color: Color,
 
     last_x: f64,
@@ -42,10 +49,15 @@ impl TextSection {
 
 /// A colored, filled rectangle
 pub struct Rule {
+    /// Rect x origin in mm
     pub x: f64,
+    /// Rect y origin in mm
     pub y: f64,
+    /// Rect Width in mm
     pub width: f64,
+    /// Rect Height in mm
     pub height: f64,
+    /// Rect Color
     pub color: Color,
 }
 

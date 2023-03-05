@@ -58,7 +58,7 @@ version = "0.8"
 features = ["embed_en-us"]
 
 [features]
-default = ["math"]
+default = []
 images = ["image", "printpdf/embedded_images"]
 math = ["dep:rex", "dep:font"]
 
