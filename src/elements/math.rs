@@ -1,5 +1,11 @@
-use crate::{math::MathBlock, render, style::LineStyle, Context, Element, Position, RenderResult};
+use crate::{
+    math::{MathBlock, MathOp},
+    render,
+    style::LineStyle,
+    Context, Element, Position, RenderResult,
+};
 
+/// An element that can render a MathBlock to a PDF document
 pub struct MathElement {
     block: MathBlock,
 }
@@ -19,33 +25,27 @@ impl Element for MathElement {
     ) -> Result<RenderResult, crate::error::Error> {
         for op in self.block.ops() {
             match op {
-                crate::math::MathOp::Rect {
-                    x,
-                    y,
-                    width,
-                    height,
-                } => area.draw_line(
+                MathOp::TextSection(text_section) => {
+                    area.print_positioned_codepoints(
+                        &context.font_cache,
+                        Position::new(0, text_section.origin_y),
+                        text_section.x_offsets.clone().into_iter(),
+                        text_section.glyph_ids.clone().into_iter(),
+                        text_section.font_size,
+                        style.with_color(text_section.color),
+                    );
+                }
+                MathOp::Rule(rule) => area.draw_line(
                     vec![
-                        Position::new(*x, *y),
-                        Position::new(x + width, *y),
-                        Position::new(x + width, y + height),
-                        Position::new(*x, y + height),
-                        Position::new(*x, *y),
+                        Position::new(rule.x, rule.y),
+                        Position::new(rule.x + rule.width, rule.y),
+                        Position::new(rule.x + rule.width, rule.y + rule.height),
+                        Position::new(rule.x, rule.y + rule.height),
+                        Position::new(rule.x, rule.y),
                     ],
-                    LineStyle::default().with_filled(true),
-                ),
-                crate::math::MathOp::TextSection {
-                    origin_y,
-                    font_size,
-                    x_offsets,
-                    glyph_ids,
-                    ..
-                } => area.print_positioned_codepoints(
-                    &context.font_cache,
-                    Position::new(0, *origin_y),
-                    x_offsets.into_iter().map(|f| *f),
-                    glyph_ids.into_iter().map(|f| *f),
-                    *font_size,
+                    LineStyle::default()
+                        .with_color(rule.color)
+                        .with_filled(true),
                 ),
             }
         }

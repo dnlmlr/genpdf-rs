@@ -651,11 +651,11 @@ impl<'p> Area<'p> {
         positions: P,
         codepoints: C,
         font_size: f64,
+        style: Style,
     ) where
         C: IntoIterator<Item = u16>,
         P: IntoIterator<Item = f64>,
     {
-        let style = Style::default();
         let mut section = self
             .text_section(font_cache, origin, style.metrics(font_cache))
             .unwrap();
