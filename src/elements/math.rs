@@ -2,7 +2,7 @@ use crate::{
     math::MathOp, render, style::LineStyle, Alignment, Context, Element, Position, RenderResult,
 };
 
-/// An element that can render a MathBlock to a PDF document
+/// An element that can render LaTeX-styled math formulas to a PDF document
 pub struct Math {
     source: String,
     alignment: Alignment,
