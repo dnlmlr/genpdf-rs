@@ -11,7 +11,8 @@ use crate::{fonts::FontFamily, style::Color, Size};
 const POSITIONING_ACCURACY: f64 = 0.01; // Unit: millimeters
 
 /// ReX renders at 72dpi; 1in = 25.4mm; 25.4mm / 72 dpi = 0.352777
-const PX_TO_MM: f64 = 0.352777;
+// const PX_TO_MM: f64 = 0.3514598035146;
+const PX_TO_MM: f64 = 25.4 / 72.0;
 
 /// Converts millimeters to EMs at the given font size. Useful for calculating kerning.
 fn mm_to_em(mm: f64, font_size: f64) -> f64 {
@@ -74,17 +75,15 @@ pub enum MathOp {
 pub struct MathBlock {
     /// Bounding box of the math block
     pub size: Size,
-    base_font_size: f64,
     math_ops: Vec<MathOp>,
     current_color: Color,
 }
 
 impl MathBlock {
     /// Creates a new, empty math block with black color and the given bounding box
-    pub fn new(size: Size, base_font_size: f64) -> Self {
+    pub fn new(size: Size) -> Self {
         Self {
             size,
-            base_font_size,
             math_ops: Vec::new(),
             current_color: Color::Rgb(0, 0, 0),
         }
@@ -147,16 +146,18 @@ impl MathBlock {
 
 impl Backend for MathBlock {
     fn symbol(&mut self, pos: rex::Cursor, gid: u16, font_size: f64, ctx: &rex::MathFont) {
+        let font_scale_x = ctx.font_matrix().extract_scale().x();
+        let font_scale_y = ctx.font_matrix().extract_scale().y();
+
         // rex positions everything one 1em too low if the grid is used.
         // but if the grid is NOT used, the y offsets are completely wrong, so just fix it here
-        let y_offset = -self.base_font_size;
-
-        let font_scale = ctx.font_matrix().extract_scale().x();
+        let ascend = ctx.vmetrics().map(|it| it.ascent).unwrap_or(0.0);
+        let y_offset = -(ascend * font_scale_y) as f64 * font_size;
         let advance = ctx
             .glyph_metrics(gid)
             .map(|metrics| metrics.advance)
             .unwrap_or(0.0)
-            * font_scale;
+            * font_scale_x;
 
         self.push_glyph(
             pos.x as f64 * PX_TO_MM,
@@ -169,11 +170,9 @@ impl Backend for MathBlock {
     }
 
     fn rule(&mut self, pos: rex::Cursor, width: f64, height: f64) {
-        // todo: what is this 0.23 - i don't know why but it works
-        let y_offset = -self.base_font_size * 0.23;
         self.math_ops.push(MathOp::Rule(Rule {
             x: pos.x * PX_TO_MM,
-            y: (pos.y + y_offset) * PX_TO_MM,
+            y: pos.y * PX_TO_MM,
             height: height * PX_TO_MM,
             width: width * PX_TO_MM,
             color: self.current_color,
@@ -244,7 +243,7 @@ impl MathRenderer {
 
         let (x0, y0, x1, y1) = self.rex_renderer.size(&rex_layout);
         let size = Size::new((x1 - x0) * PX_TO_MM, (y1 - y0) * PX_TO_MM);
-        let mut math_block = MathBlock::new(size, font_size);
+        let mut math_block = MathBlock::new(size);
         self.rex_renderer.render(&rex_layout, &mut math_block);
 
         math_block
