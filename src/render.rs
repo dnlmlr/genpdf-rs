@@ -351,7 +351,7 @@ impl<'p> Layer<'p> {
         dynamic_image.add_to_layer(self.data.layer.clone(), transform);
     }
 
-    fn add_line_shape<I>(&self, points: I)
+    fn add_line_shape<I>(&self, points: I, filled: bool)
     where
         I: IntoIterator<Item = LayerPosition>,
     {
@@ -362,7 +362,7 @@ impl<'p> Layer<'p> {
         let line = printpdf::Line {
             points: line_points,
             is_closed: false,
-            has_fill: false,
+            has_fill: filled,
             has_stroke: true,
             is_clipping_path: false,
         };
@@ -416,6 +416,10 @@ impl<'p> Layer<'p> {
 
     fn set_font(&self, font: &printpdf::IndirectFontRef, font_size: u8) {
         self.data.layer.set_font(font, font_size.into());
+    }
+
+    fn set_font_f64(&self, font: &printpdf::IndirectFontRef, font_size: f64) {
+        self.data.layer.set_font(font, font_size);
     }
 
     fn write_positioned_codepoints<P, C>(&self, positions: P, codepoints: C)
@@ -595,8 +599,10 @@ impl<'p> Area<'p> {
     {
         self.layer.set_outline_thickness(line_style.thickness());
         self.layer.set_outline_color(line_style.color());
-        self.layer
-            .add_line_shape(points.into_iter().map(|pos| self.position(pos)));
+        self.layer.add_line_shape(
+            points.into_iter().map(|pos| self.position(pos)),
+            line_style.filled(),
+        );
     }
 
     /// Tries to draw the given string at the given position and returns `true` if the area was
@@ -635,6 +641,25 @@ impl<'p> Area<'p> {
         let mut area = self.clone();
         area.add_offset(position);
         TextSection::new(font_cache, area, metrics)
+    }
+
+    /// Creates a new text section at the given position, and writes codepoints (actually glyph IDs) with kerning into it
+    pub fn print_positioned_codepoints<C, P>(
+        &self,
+        font_cache: &fonts::FontCache,
+        origin: Position,
+        positions: P,
+        codepoints: C,
+        font_size: f64,
+        style: Style,
+    ) where
+        C: IntoIterator<Item = u16>,
+        P: IntoIterator<Item = f64>,
+    {
+        let mut section = self
+            .text_section(font_cache, origin, style.metrics(font_cache))
+            .unwrap();
+        section.print_positioned_codepoints(style, positions, codepoints, font_size);
     }
 
     /// Returns a position relative to the top left corner of this area.
@@ -692,6 +717,11 @@ impl<'f, 'p> TextSection<'f, 'p> {
             self.font = Some((font.clone(), font_size));
             self.area.layer.set_font(font, font_size);
         }
+    }
+
+    fn set_font_f64(&mut self, font: &printpdf::IndirectFontRef, font_size: f64) {
+        // todo caching clusterfuck
+        self.area.layer.set_font_f64(font, font_size);
     }
 
     /// Tries to add a new line and returns `true` if the area was large enough to fit the new
@@ -774,6 +804,35 @@ impl<'f, 'p> TextSection<'f, 'p> {
     /// The font cache for this text section must contain the PDF font for the given style.
     pub fn print_str(&mut self, s: impl AsRef<str>, style: Style) -> Result<(), Error> {
         self.print_str_xoff(s, style, Mm(0.0))
+    }
+
+    /// Prints raw glyph IDs into a single text section at the given origin, with horizontal positions applied.
+    /// Positions are in EM units and relative to the previous character.
+    pub fn print_positioned_codepoints<P, C>(
+        &mut self,
+        style: Style,
+        positions: P,
+        codepoints: C,
+        font_size: f64,
+    ) where
+        P: IntoIterator<Item = f64>,
+        C: IntoIterator<Item = u16>,
+    {
+        let font = style.font(self.font_cache);
+
+        let font = self
+            .font_cache
+            .get_pdf_font(font)
+            .expect("Could not find PDF font in font cache");
+        self.area.layer.set_fill_color(style.color());
+        self.set_font_f64(font, font_size);
+        self.set_text_cursor(Mm(0.0));
+
+        let positions = positions.into_iter().map(|p| p * -1000.0).map(|p| p as i64);
+
+        self.area
+            .layer
+            .write_positioned_codepoints(positions, codepoints);
     }
 }
 

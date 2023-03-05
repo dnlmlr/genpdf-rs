@@ -158,6 +158,8 @@ mod wrap;
 pub mod elements;
 pub mod error;
 pub mod fonts;
+#[cfg(feature = "math")]
+pub mod math;
 pub mod render;
 pub mod style;
 
@@ -170,6 +172,12 @@ use derive_more::{
 };
 
 use error::Context as _;
+
+#[cfg(feature = "math")]
+use math::MathRenderer;
+
+#[cfg(feature = "math")]
+use fonts::{Font, FontFamily};
 
 /// A length measured in millimeters.
 ///
@@ -610,6 +618,11 @@ impl Document {
     ) -> fonts::FontFamily<fonts::Font> {
         self.context.font_cache.add_font_family(font_family)
     }
+    /// Enables math rendering by providing a font with a valid MATH header.
+    #[cfg(feature = "math")]
+    pub fn enable_math(&mut self, math_font_data: &[u8], math_font_family: FontFamily<Font>) {
+        self.context.math_renderer = Some(MathRenderer::new(math_font_data, math_font_family));
+    }
 
     /// Returns the font cache used by this document.
     ///
@@ -641,6 +654,11 @@ impl Document {
     /// If this method is not called, the default value of 12 points is used.
     pub fn set_font_size(&mut self, font_size: u8) {
         self.style.set_font_size(font_size);
+    }
+
+    /// Gets the default font size for this document
+    pub fn font_size(&self) -> u8 {
+        self.style.font_size()
     }
 
     /// Sets the default line spacing factor for this document.
@@ -965,6 +983,7 @@ pub trait Element {
 pub struct Context {
     /// The font cache for this rendering process.
     pub font_cache: fonts::FontCache,
+
     /// The hyphenator to use for hyphenation.
     ///
     /// *Only available if the `hyphenation` feature is enabled.*
@@ -972,12 +991,21 @@ pub struct Context {
     /// If this field is `None`, hyphenation is disabled.
     #[cfg(feature = "hyphenation")]
     pub hyphenator: Option<hyphenation::Standard>,
+
+    /// The math renderer for this process.
+    /// If it is `None`, no math font was registered
+    #[cfg(feature = "math")]
+    pub math_renderer: Option<MathRenderer>,
 }
 
 impl Context {
     #[cfg(not(feature = "hyphenation"))]
     fn new(font_cache: fonts::FontCache) -> Context {
-        Context { font_cache }
+        Context {
+            font_cache,
+            #[cfg(feature = "math")]
+            math_renderer: None,
+        }
     }
 
     #[cfg(feature = "hyphenation")]
@@ -985,6 +1013,8 @@ impl Context {
         Context {
             font_cache,
             hyphenator: None,
+            #[cfg(feature = "math")]
+            math_renderer: None,
         }
     }
 }

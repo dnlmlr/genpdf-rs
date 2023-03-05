@@ -43,6 +43,9 @@
 #[cfg(feature = "images")]
 mod images;
 
+#[cfg(feature = "math")]
+mod math;
+
 use std::collections;
 use std::iter;
 use std::mem;
@@ -56,6 +59,9 @@ use crate::{Alignment, Context, Element, Margins, Mm, Position, RenderResult, Si
 
 #[cfg(feature = "images")]
 pub use images::Image;
+
+#[cfg(feature = "math")]
+pub use math::Math;
 
 /// Helper trait for creating boxed elements.
 pub trait IntoBoxedElement {

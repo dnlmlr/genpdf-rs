@@ -585,6 +585,7 @@ impl<'s> From<StyledString> for StyledCow<'s> {
 pub struct LineStyle {
     thickness: Mm,
     color: Color,
+    filled: bool,
 }
 
 impl Default for LineStyle {
@@ -592,6 +593,7 @@ impl Default for LineStyle {
         LineStyle {
             thickness: Mm::from(0.1),
             color: Color::Rgb(0, 0, 0),
+            filled: false,
         }
     }
 }
@@ -647,5 +649,21 @@ impl LineStyle {
     /// Returns the line color.
     pub fn color(&self) -> Color {
         self.color
+    }
+
+    /// Sets whether the line should be filled, if used as a rectangle
+    pub fn set_filled(&mut self, filled: bool) {
+        self.filled = filled;
+    }
+
+    /// Sets the fill style and returns the line style
+    pub fn with_filled(mut self, filled: bool) -> Self {
+        self.set_filled(filled);
+        self
+    }
+
+    /// Retunrs the fill style
+    pub fn filled(&self) -> bool {
+        self.filled
     }
 }
