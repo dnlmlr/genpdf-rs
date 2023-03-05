@@ -1,13 +1,6 @@
-use font::OpenTypeFont;
 use genpdf::{
-    elements::{self, MathElement},
-    fonts::FontFamily,
-    math::MathBlock,
-};
-use rex::{
-    font::FontContext,
-    layout::{engine, Grid, Layout, LayoutSettings},
-    parser, Renderer,
+    elements,
+    fonts::{FontData, FontFamily},
 };
 
 const MATH_EXAMPLE: &'static str = r"
@@ -18,54 +11,37 @@ const MATH_EXAMPLE: &'static str = r"
 f^{(n)}(z) = \frac{n!}{2\pi i} \oint \frac{f(\xi)}{(\xi - z)^{n+1}}\,\mathrm{d}\xi
 ";
 
+fn make_font_family(data: &[u8]) -> FontFamily<FontData> {
+    let font = genpdf::fonts::FontData::new(data.to_vec(), None).unwrap();
+    FontFamily {
+        regular: font.clone(),
+        bold: font.clone(),
+        italic: font.clone(),
+        bold_italic: font,
+    }
+}
+
 fn main() {
-    let xits_font = include_bytes!("./fonts/rex-xits.ttf");
+    let text_font_data = include_bytes!("./fonts/open-sans.ttf");
+    let math_font_data = include_bytes!("./fonts/rex-xits.ttf");
 
-    let pdf_font = genpdf::fonts::FontData::new(xits_font.to_vec(), None).unwrap();
-    let pdf_font_family = FontFamily {
-        regular: pdf_font.clone(),
-        bold: pdf_font.clone(),
-        italic: pdf_font.clone(),
-        bold_italic: pdf_font,
-    };
+    let text_font_family = make_font_family(text_font_data);
+    let math_font_family = make_font_family(math_font_data);
 
-    let mut pdf_doc = genpdf::Document::new(pdf_font_family);
+    let mut pdf_doc = genpdf::Document::new(text_font_family);
     pdf_doc.set_title("genpdf+rex Demo Document");
     pdf_doc.set_minimal_conformance();
     pdf_doc.set_line_spacing(1.25);
-    pdf_doc.set_font_size(10);
+    pdf_doc.set_font_size(30);
 
-    let rex_font = font::parse(xits_font)
-        .unwrap()
-        .downcast_box::<OpenTypeFont>();
+    let math_font_family = pdf_doc.add_font_family(math_font_family);
+    pdf_doc.enable_math(math_font_data, math_font_family);
 
-    if let Ok(rex_font) = rex_font {
-        assert!(rex_font.math.is_some());
+    pdf_doc.push(elements::Text::new("Math with Rex and genpdf"));
+    pdf_doc.push(elements::Math::new(MATH_EXAMPLE));
+    pdf_doc.push(elements::Text::new("End of test!"));
 
-        let rex_font_ctx = FontContext::new(&rex_font);
-        let rex_layout_settings = LayoutSettings::new(
-            &rex_font_ctx,
-            pdf_doc.font_size() as f64,
-            rex::layout::Style::Display,
-        );
-        let rex_ast = parser::parse(MATH_EXAMPLE).unwrap();
-        let rex_math_block = engine::layout(&rex_ast, rex_layout_settings).unwrap();
-
-        let mut math_block = MathBlock::new();
-
-        let rex_renderer = Renderer::new();
-        let mut rex_grid = Grid::new();
-        rex_grid.insert(0, 0, rex_math_block.as_node());
-
-        let mut rex_layout = Layout::new();
-        rex_layout.add_node(rex_grid.build());
-        rex_renderer.render(&rex_layout, &mut math_block);
-
-        pdf_doc.push(elements::Text::new("Math with Rex and genpdf"));
-        pdf_doc.push(MathElement::new(math_block));
-
-        pdf_doc
-            .render_to_file("./math.pdf")
-            .expect("Failed to write output file");
-    }
+    pdf_doc
+        .render_to_file("./math.pdf")
+        .expect("Failed to write output file");
 }

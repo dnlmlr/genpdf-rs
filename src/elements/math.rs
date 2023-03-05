@@ -1,29 +1,36 @@
 use crate::{
-    math::{MathBlock, MathOp},
-    render,
-    style::LineStyle,
-    Context, Element, Position, RenderResult,
+    math::MathOp, render, style::LineStyle, Context, Element, Position, RenderResult, Size,
 };
 
 /// An element that can render a MathBlock to a PDF document
-pub struct MathElement {
-    block: MathBlock,
+pub struct Math {
+    source: String,
 }
 
-impl MathElement {
-    pub fn new(block: MathBlock) -> Self {
-        Self { block }
+impl Math {
+    /// Creates a new math element that renders the given LaTeX math source
+    pub fn new(source: &str) -> Self {
+        Self {
+            source: source.to_owned(),
+        }
     }
 }
 
-impl Element for MathElement {
+impl Element for Math {
     fn render(
         &mut self,
         context: &Context,
         area: render::Area<'_>,
         style: crate::style::Style,
     ) -> Result<RenderResult, crate::error::Error> {
-        for op in self.block.ops() {
+        let math_renderer = context
+            .math_renderer
+            .as_ref()
+            .expect("Tried to use math element without an active math font");
+
+        let block = math_renderer.render(style.font_size() as f64, &self.source);
+
+        for op in block.ops() {
             match op {
                 MathOp::TextSection(text_section) => {
                     area.print_positioned_codepoints(
@@ -32,7 +39,9 @@ impl Element for MathElement {
                         text_section.x_offsets.clone().into_iter(),
                         text_section.glyph_ids.clone().into_iter(),
                         text_section.font_size,
-                        style.with_color(text_section.color),
+                        style
+                            .with_color(text_section.color)
+                            .with_font_family(math_renderer.font_family()),
                     );
                 }
                 MathOp::Rule(rule) => area.draw_line(
@@ -50,6 +59,8 @@ impl Element for MathElement {
             }
         }
 
-        Ok(RenderResult::default())
+        let mut result = RenderResult::default();
+        result.size = block.size;
+        Ok(result)
     }
 }

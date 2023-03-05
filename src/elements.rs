@@ -61,7 +61,7 @@ use crate::{Alignment, Context, Element, Margins, Mm, Position, RenderResult, Si
 pub use images::Image;
 
 #[cfg(feature = "math")]
-pub use math::MathElement;
+pub use math::Math;
 
 /// Helper trait for creating boxed elements.
 pub trait IntoBoxedElement {

@@ -1,15 +1,18 @@
-use font::Font;
-use rex::Backend;
+use std::fmt::Debug;
 
-use crate::style::Color;
+use font::{Font, OpenTypeFont};
+use rex::{font::FontContext, Backend};
 
-/// Rex applies a vertical offset to all lines... TODO: we need to find out what this actually means
-const REX_V_OFFSET: f64 = 7.6;
+use crate::{
+    fonts::{FontData, FontFamily},
+    style::Color,
+    Size,
+};
 
 /// Maximum difference between two y-offsets to be inserted into same batch
 const POSITIONING_ACCURACY: f64 = 0.01; // Unit: millimeters
 
-/// PDFs have 72dpi; 1in = 25.4mm; 25.4mm / 72 dpi = 0.352777
+/// ReX renders at 72dpi; 1in = 25.4mm; 25.4mm / 72 dpi = 0.352777
 const PX_TO_MM: f64 = 0.352777;
 
 /// Converts millimeters to EMs at the given font size. Useful for calculating kerning.
@@ -57,14 +60,19 @@ pub enum MathOp {
 
 /// Receives and holds math drawing commands from ReX
 pub struct MathBlock {
+    /// Bounding box of the math block
+    pub size: Size,
+    base_font_size: f64,
     math_ops: Vec<MathOp>,
     current_color: Color,
 }
 
 impl MathBlock {
-    /// Creates a new, empty math block with black color
-    pub fn new() -> Self {
+    /// Creates a new, empty math block with black color and the given bounding box
+    pub fn new(size: Size, base_font_size: f64) -> Self {
         Self {
+            size,
+            base_font_size,
             math_ops: Vec::new(),
             current_color: Color::Rgb(0, 0, 0),
         }
@@ -127,6 +135,10 @@ impl MathBlock {
 
 impl Backend for MathBlock {
     fn symbol(&mut self, pos: rex::Cursor, gid: u16, font_size: f64, ctx: &rex::MathFont) {
+        // rex positions everything one 1em too low if the grid is used.
+        // but if the grid is NOT used, the y offsets are completely wrong, so just fix it here
+        let y_offset = -self.base_font_size;
+
         let font_scale = ctx.font_matrix().extract_scale().x();
         let advance = ctx
             .glyph_metrics(gid)
@@ -136,7 +148,7 @@ impl Backend for MathBlock {
 
         self.push_glyph(
             pos.x as f64 * PX_TO_MM,
-            pos.y as f64 * PX_TO_MM,
+            (pos.y as f64 + y_offset) * PX_TO_MM,
             gid,
             font_size,
             self.current_color,
@@ -145,9 +157,11 @@ impl Backend for MathBlock {
     }
 
     fn rule(&mut self, pos: rex::Cursor, width: f64, height: f64) {
+        // todo: what is this 0.23 - i don't know why but it works
+        let y_offset = -self.base_font_size * 0.23;
         self.math_ops.push(MathOp::Rule(Rule {
             x: pos.x * PX_TO_MM,
-            y: (pos.y + REX_V_OFFSET) * PX_TO_MM,
+            y: (pos.y + y_offset) * PX_TO_MM,
             height: height * PX_TO_MM,
             width: width * PX_TO_MM,
             color: self.current_color,
@@ -160,5 +174,71 @@ impl Backend for MathBlock {
 
     fn end_color(&mut self) {
         self.current_color = Color::Rgb(0, 0, 0);
+    }
+}
+
+/// Wrapper for the ReX renderer structure
+pub struct MathRenderer {
+    font_family: FontFamily<crate::fonts::Font>,
+    font: Box<OpenTypeFont>,
+    rex_renderer: rex::Renderer,
+}
+
+impl Debug for MathRenderer {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // todo
+        f.debug_struct("MathRenderer").finish()
+    }
+}
+
+impl MathRenderer {
+    pub(crate) fn new(
+        math_font_data: &[u8],
+        math_font_family: FontFamily<crate::fonts::Font>,
+    ) -> Self {
+        let font = font::parse(math_font_data)
+            .expect("Failed to decode math font")
+            .downcast_box::<OpenTypeFont>();
+
+        match font {
+            Ok(font) => Self {
+                font,
+                rex_renderer: rex::Renderer::new(),
+                font_family: math_font_family,
+            },
+            Err(_) => panic!("Not an OpenType font"),
+        }
+    }
+
+    pub(crate) fn render(&self, font_size: f64, math_def: &str) -> MathBlock {
+        use rex::{
+            layout::engine::layout,
+            layout::{Grid, Layout, LayoutSettings},
+            parser::parse,
+        };
+
+        let rex_font_ctx = FontContext::new(&self.font); // todo maybe don't reinstantiate every time
+        let rex_layout_settings =
+            LayoutSettings::new(&rex_font_ctx, font_size, rex::layout::Style::Display);
+
+        let rex_ast = parse(math_def).expect("Failed to parse math");
+        let rex_math_block = layout(&rex_ast, rex_layout_settings).expect("Failed to layout math");
+
+        let mut rex_grid = Grid::new();
+        rex_grid.insert(0, 0, rex_math_block.as_node());
+
+        let mut rex_layout = Layout::new();
+        rex_layout.add_node(rex_grid.build());
+
+        let (x0, y0, x1, y1) = self.rex_renderer.size(&rex_layout);
+        let size = Size::new((x1 - x0) * PX_TO_MM, (y1 - y0) * PX_TO_MM);
+        let mut math_block = MathBlock::new(size, font_size);
+        self.rex_renderer.render(&rex_layout, &mut math_block);
+
+        math_block
+    }
+
+    pub(crate) fn font_family(&self) -> FontFamily<crate::fonts::Font> {
+        self.font_family
     }
 }

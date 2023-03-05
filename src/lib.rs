@@ -172,6 +172,10 @@ use derive_more::{
 };
 
 use error::Context as _;
+use fonts::Font;
+use fonts::FontData;
+use fonts::FontFamily;
+use math::MathRenderer;
 
 /// A length measured in millimeters.
 ///
@@ -613,6 +617,11 @@ impl Document {
         self.context.font_cache.add_font_family(font_family)
     }
 
+    /// Enables math rendering by providing a font with a valid MATH header.
+    pub fn enable_math(&mut self, math_font_data: &[u8], math_font_family: FontFamily<Font>) {
+        self.context.math_renderer = Some(MathRenderer::new(math_font_data, math_font_family));
+    }
+
     /// Returns the font cache used by this document.
     ///
     /// You can use the font cache to get the default font and to query glyph metrics for a font.
@@ -972,6 +981,7 @@ pub trait Element {
 pub struct Context {
     /// The font cache for this rendering process.
     pub font_cache: fonts::FontCache,
+
     /// The hyphenator to use for hyphenation.
     ///
     /// *Only available if the `hyphenation` feature is enabled.*
@@ -979,12 +989,20 @@ pub struct Context {
     /// If this field is `None`, hyphenation is disabled.
     #[cfg(feature = "hyphenation")]
     pub hyphenator: Option<hyphenation::Standard>,
+
+    /// The math renderer for this process.
+    /// If it is `None`, no math font was registered
+    #[cfg(feature = "math")]
+    pub math_renderer: Option<MathRenderer>,
 }
 
 impl Context {
     #[cfg(not(feature = "hyphenation"))]
     fn new(font_cache: fonts::FontCache) -> Context {
-        Context { font_cache }
+        Context {
+            font_cache,
+            math_renderer: None,
+        }
     }
 
     #[cfg(feature = "hyphenation")]
@@ -992,6 +1010,7 @@ impl Context {
         Context {
             font_cache,
             hyphenator: None,
+            math_renderer: None,
         }
     }
 }
