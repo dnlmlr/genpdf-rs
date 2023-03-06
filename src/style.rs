@@ -474,6 +474,17 @@ impl<'s> StyledStr<'s> {
     pub fn width(&self, font_cache: &fonts::FontCache) -> Mm {
         self.style.str_width(font_cache, &self.s)
     }
+
+    /// Calculates the width of the this string if it was trimmed at the end with this style using 
+    /// the data in the given font cache.
+    ///
+    /// If the font family is set for the style, it must have been created by the given
+    /// [`FontCache`][].
+    ///
+    /// [`FontCache`]: ../fonts/struct.FontCache.html
+    pub fn width_trimmed_end(&self, font_cache: &fonts::FontCache) -> Mm {
+        self.style.str_width(font_cache, &self.s.trim_end())
+    }
 }
 
 impl<'s> From<&'s str> for StyledStr<'s> {
@@ -532,6 +543,17 @@ impl<'s> StyledCow<'s> {
     /// [`FontCache`]: ../fonts/struct.FontCache.html
     pub fn width(&self, font_cache: &fonts::FontCache) -> Mm {
         self.style.str_width(font_cache, self.s.as_ref())
+    }
+
+    /// Calculates the width of the this string if it was trimmed at the end with this style using 
+    /// the data in the given font cache.
+    ///
+    /// If the font family is set for the style, it must have been created by the given
+    /// [`FontCache`][].
+    ///
+    /// [`FontCache`]: ../fonts/struct.FontCache.html
+    pub fn width_trimmed_end(&self, font_cache: &fonts::FontCache) -> Mm {
+        self.style.str_width(font_cache, &self.s.trim_end())
     }
 }
 

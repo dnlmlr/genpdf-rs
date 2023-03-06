@@ -49,9 +49,11 @@ impl<'c, 's, I: Iterator<Item = style::StyledStr<'s>>> Iterator for Wrapper<'c, 
     fn next(&mut self) -> Option<(Vec<style::StyledCow<'s>>, usize)> {
         // Append words to self.buf until the maximum line length is reached
         while let Some(s) = self.iter.next() {
+            // Use the trimmed width to check for overflows as trailing spaces are not renderd
+            let width_trimmed = s.width_trimmed_end(&self.context.font_cache);
             let mut width = s.width(&self.context.font_cache);
 
-            if self.x + width > self.width {
+            if self.x + width_trimmed > self.width {
                 // The word does not fit into the current line (at least not completely)
 
                 let mut delta = 0;
