@@ -131,7 +131,9 @@ impl FontCache {
         for font in &self.fonts {
             let pdf_font = match &font.raw_data {
                 RawFontData::Builtin(builtin) => renderer.add_builtin_font(*builtin)?,
-                RawFontData::Embedded(data) => renderer.add_embedded_font(&data)?,
+                RawFontData::Embedded(data) => {
+                    renderer.add_embedded_font_with_subsetting(&data, font.allow_subsetting)?
+                }
             };
             self.pdf_fonts.push(pdf_font);
         }
@@ -173,6 +175,7 @@ impl FontCache {
 pub struct FontData {
     rt_font: rusttype::Font<'static>,
     raw_data: RawFontData,
+    allow_subsetting: bool,
 }
 
 impl FontData {
@@ -199,8 +202,29 @@ impl FontData {
                 ErrorKind::InvalidFont,
             ))
         } else {
-            Ok(FontData { rt_font, raw_data })
+            Ok(FontData {
+                rt_font,
+                raw_data,
+                allow_subsetting: true,
+            })
         }
+    }
+
+    /// Set whether or not to allow subsetting for this font. If enabled, unused glyphs will be
+    /// removed before embedding into the PDF file.
+    ///
+    /// Default: true
+    pub fn set_subsetting(&mut self, allow_subsetting: bool) {
+        self.allow_subsetting = allow_subsetting;
+    }
+
+    /// Set whether or not to allow subsetting for this font. If enabled, unused glyphs will be
+    /// removed before embedding into the PDF file.
+    ///
+    /// Default: true
+    pub fn with_subsetting(mut self, allow_subsetting: bool) -> Self {
+        self.allow_subsetting = allow_subsetting;
+        self
     }
 
     /// Loads the font at the given path.
@@ -320,6 +344,28 @@ impl<T: Clone + Copy + fmt::Debug + PartialEq> FontFamily<T> {
         } else {
             self.regular
         }
+    }
+}
+
+impl FontFamily<FontData> {
+    /// Set whether or not to allow subsetting for this all fonts in this font family. If enabled,
+    /// unused glyphs will be removed before embedding into the PDF file.
+    ///
+    /// Default: true
+    pub fn set_subsetting(&mut self, allow_subsetting: bool) {
+        self.regular.set_subsetting(allow_subsetting);
+        self.bold.set_subsetting(allow_subsetting);
+        self.italic.set_subsetting(allow_subsetting);
+        self.bold_italic.set_subsetting(allow_subsetting);
+    }
+
+    /// Set whether or not to allow subsetting for this all fonts in this font family. If enabled,
+    /// unused glyphs will be removed before embedding into the PDF file.
+    ///
+    /// Default: true
+    pub fn with_subsetting(mut self, allow_subsetting: bool) -> Self {
+        self.set_subsetting(allow_subsetting);
+        self
     }
 }
 

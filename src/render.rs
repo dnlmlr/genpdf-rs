@@ -183,6 +183,18 @@ impl Renderer {
             .context("Failed to load PDF font")
     }
 
+    /// Loads the font from the given data, adds it to the generated document and returns a
+    /// reference to it.
+    pub fn add_embedded_font_with_subsetting(
+        &self,
+        data: &[u8],
+        allow_subsetting: bool,
+    ) -> Result<printpdf::IndirectFontRef, Error> {
+        self.doc
+            .add_external_font_with_subsetting(data, allow_subsetting)
+            .context("Failed to load PDF font")
+    }
+
     /// Writes this PDF document to a writer.
     pub fn write(self, w: impl io::Write) -> Result<(), Error> {
         self.doc

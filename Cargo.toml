@@ -42,8 +42,12 @@ version = "0.8"
 optional = true
 
 [dependencies.printpdf]
-version = "0.5.3"
+git = "https://github.com/dnlmlr/printpdf"
+rev = "72c00957902dbc27bc71dcc743d9d1377e526685"
 default-features = false
+features = [
+    "font_subsetting",
+]
 
 [dependencies.derive_more]
 version = "0.99"
