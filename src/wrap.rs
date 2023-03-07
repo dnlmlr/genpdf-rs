@@ -140,7 +140,10 @@ fn split<'s>(
         .unwrap_or_default();
     if idx > 0 {
         let idx = hyphenated.breaks[idx - 1];
-        let start = s.s[..idx].to_owned() + mark;
+        let mut start = s.s[..idx].to_owned();
+        if !start.ends_with(mark) {
+            start.push_str(mark);
+        }
         let end = &s.s[idx..];
         Some((
             style::StyledCow::new(start, s.style),
