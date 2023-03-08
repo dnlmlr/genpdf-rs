@@ -31,6 +31,9 @@ rex = { git = "https://github.com/Twometer/ReX", rev = "d0991f44a66dee84f5280277
 font = { git = "https://github.com/pdf-rs/font", features = [
     "woff",
 ], optional = true }
+syntect = { version = "5.0", default-features = false, features = [
+    "parsing", "default-syntaxes", "default-themes"
+], optional = true}
 
 [dependencies.image]
 version = "0.24.4"
@@ -67,6 +70,7 @@ features = ["embed_en-us"]
 default = []
 images = ["image", "printpdf/embedded_images"]
 math = ["dep:rex", "dep:font"]
+code-syntax-highlighting = ["dep:syntect"]
 
 [package.metadata.docs.rs]
 all-features = true

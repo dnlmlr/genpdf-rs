@@ -611,6 +611,11 @@ impl<'p> Area<'p> {
     {
         self.layer.set_outline_thickness(line_style.thickness());
         self.layer.set_outline_color(line_style.color());
+        if line_style.filled() {
+            self.layer.set_fill_color(Some(line_style.color()));
+        } else {
+            self.layer.set_fill_color(None);
+        }
         self.layer.add_line_shape(
             points.into_iter().map(|pos| self.position(pos)),
             line_style.filled(),
@@ -756,6 +761,17 @@ impl<'f, 'p> TextSection<'f, 'p> {
         style: Style,
         extra_word_spacing: Mm,
     ) -> Result<(), Error> {
+        self.print_str_xoff_trim(s, style, extra_word_spacing, true)
+    }
+
+    /// Same as print_str, but with additional word spacing
+    pub fn print_str_xoff_trim(
+        &mut self,
+        s: impl AsRef<str>,
+        style: Style,
+        extra_word_spacing: Mm,
+        trim_first_word: bool,
+    ) -> Result<(), Error> {
         let mut extra_word_spacing: Pt = extra_word_spacing.into();
 
         let font = style.font(self.font_cache);
@@ -763,10 +779,12 @@ impl<'f, 'p> TextSection<'f, 'p> {
 
         // Adjust cursor to remove left bearing of the first character of the first string
         if self.is_first {
-            // If the first word is literally just space, ignore it to preserve alignment
-            s = s.trim_start();
-            if s.is_empty() {
-                return Ok(());
+            if trim_first_word {
+                // If the first word is literally just space, ignore it to preserve alignment
+                s = s.trim_start();
+                if s.is_empty() {
+                    return Ok(());
+                }
             }
 
             let x_offset = if let Some(first_c) = s.chars().next() {

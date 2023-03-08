@@ -162,6 +162,8 @@ pub mod fonts;
 pub mod math;
 pub mod render;
 pub mod style;
+#[cfg(feature = "code-syntax-highlighting")]
+pub mod syntax_highlighting;
 
 use std::fs;
 use std::io;
@@ -178,6 +180,9 @@ use math::MathRenderer;
 
 #[cfg(feature = "math")]
 use fonts::{Font, FontFamily};
+
+#[cfg(feature = "code-syntax-highlighting")]
+use syntax_highlighting::SyntaxHighlighter;
 
 /// A length measured in millimeters.
 ///
@@ -618,10 +623,17 @@ impl Document {
     ) -> fonts::FontFamily<fonts::Font> {
         self.context.font_cache.add_font_family(font_family)
     }
+
     /// Enables math rendering by providing a font with a valid MATH header.
     #[cfg(feature = "math")]
     pub fn enable_math(&mut self, math_font_data: &[u8], math_font_family: FontFamily<Font>) {
         self.context.math_renderer = Some(MathRenderer::new(math_font_data, math_font_family));
+    }
+
+    /// Enables syntax highlighting
+    #[cfg(feature = "code-syntax-highlighting")]
+    pub fn enable_syntax_highlighting(&mut self, syntax_highlighter: SyntaxHighlighter) {
+        self.context.syntax_highlighter = Some(syntax_highlighter);
     }
 
     /// Returns the font cache used by this document.
@@ -996,6 +1008,12 @@ pub struct Context {
     /// If it is `None`, no math font was registered
     #[cfg(feature = "math")]
     pub math_renderer: Option<MathRenderer>,
+
+    /// The syntax highlighter for this context.
+    ///
+    /// If it is None, syntax highlighting is disabled.
+    #[cfg(feature = "code-syntax-highlighting")]
+    pub syntax_highlighter: Option<SyntaxHighlighter>,
 }
 
 impl Context {
@@ -1005,6 +1023,8 @@ impl Context {
             font_cache,
             #[cfg(feature = "math")]
             math_renderer: None,
+            #[cfg(feature = "code-syntax-highlighting")]
+            syntax_highlighter: None,
         }
     }
 
@@ -1015,6 +1035,8 @@ impl Context {
             hyphenator: None,
             #[cfg(feature = "math")]
             math_renderer: None,
+            #[cfg(feature = "code-syntax-highlighting")]
+            syntax_highlighter: None,
         }
     }
 }

@@ -46,6 +46,8 @@ mod images;
 #[cfg(feature = "math")]
 mod math;
 
+mod codeblock;
+
 use std::collections;
 use std::iter;
 use std::mem;
@@ -62,6 +64,8 @@ pub use images::Image;
 
 #[cfg(feature = "math")]
 pub use math::Math;
+
+pub use codeblock::CodeBlock;
 
 /// Helper trait for creating boxed elements.
 pub trait IntoBoxedElement {
@@ -765,14 +769,15 @@ impl<E: Element> Element for FramedElement<E> {
 
         if self.is_first {
             result.size.height += line_thickness;
-            frame_area.draw_line(vec![top_left, bottom_left], self.line_style);
+            frame_area.draw_line(vec![top_left, top_right], self.line_style);
         }
+
+        frame_area.draw_line(vec![top_left, bottom_left], self.line_style);
+        frame_area.draw_line(vec![top_right, bottom_right], self.line_style);
+
         if !result.has_more {
             result.size.height += line_thickness;
-            frame_area.draw_line(vec![top_left, bottom_left], self.line_style);
-        } else {
-            frame_area.draw_line(vec![top_left, bottom_left], self.line_style);
-            frame_area.draw_line(vec![top_right, bottom_right], self.line_style);
+            frame_area.draw_line(vec![bottom_left, bottom_right], self.line_style);
         }
 
         self.is_first = false;
